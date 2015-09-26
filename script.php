@@ -61,7 +61,7 @@ do {
 $message = "";
 foreach ($validImages as $validImage) {
 	$title = trim(str_replace("#{$currentChallenge}", "", $validImage->title), ' :');
-	$message .= "[**{$title}**]({$validImage->url}) by *{$validImage->author}*"."\r\n"."\r\n";
+	$message .= "* **{$title}** [pic]({$validImage->url}) | [comment](http://www.reddit.com{$validImage->permalink}) by *{$validImage->author}*"."\r\n"."\r\n";
 }
 
 // List of receivers
