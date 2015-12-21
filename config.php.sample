@@ -1,0 +1,53 @@
+<?php
+
+// Week of first PictureChallenge
+$referenceWeek = 2146;
+// Request posts limit
+$maxPosts = 25;
+// Subredit
+$subreddit = "PictureChallenge";
+// Api URL
+$api_url = "https://www.reddit.com/r/{$subreddit}.json?&limit={$maxPosts}";
+// List of valid images
+$validImages = [];
+
+$currentChallengeWeek = floor(time()/(60*60*24*7));
+$currentChallenge = $currentChallengeWeek - $referenceWeek;
+$timeLimit = ($currentChallengeWeek-1)*60*60*24*7;
+
+// List of accepted domains for posts
+$acceptedDomain = [
+	//Flickr
+	"flickr.com",
+	"flic.kr",
+	//500px
+	"500px.com",
+	//min.us
+	"min.us",
+	"minus.com",
+	//Picasa, Google+
+	"googleusercontent.com",
+	//Deviantart
+	"deviantart.net",
+	//Smugmug
+	"smugmug.com",
+];
+
+// List of receivers
+$recipients = [
+	"email1",
+	"email2",
+];
+
+// From email
+$fromEmail = "picture@challenge";
+
+// smtp config
+$smtp = [
+	"host" => "smtp1.example.com;smtp2.example.com", // Specify main and backup SMTP servers
+	"smtp_auth" => true, // Enable SMTP authentication
+	"username" => "user@example.com", // SMTP username
+	"password" => "secret", // SMTP password
+	"smtp_secure" => "tls", // Enable TLS encryption, `ssl` also accepted
+	"port" => 587,
+];

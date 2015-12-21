@@ -1,37 +1,7 @@
 <?php
 
-// Week of first PictureChallenge
-$referenceWeek = 2146;
-// Request posts limit
-$maxPosts = 25;
-// Subredit
-$subreddit = "PictureChallenge";
-// Api URL
-$api_url = "https://www.reddit.com/r/{$subreddit}.json?&limit={$maxPosts}";
-// List of valid images
-$validImages = [];
-
-$currentChallengeWeek = floor(time()/(60*60*24*7));
-$currentChallenge = $currentChallengeWeek - $referenceWeek;
-$timeLimit = ($currentChallengeWeek-1)*60*60*24*7;
-
-// List of accepted domains for posts
-$acceptedDomain = [
-	//Flickr
-	'flickr.com',
-	'flic.kr',
-	//500px
-	'500px.com',
-	//min.us
-	'min.us',
-	'minus.com',
-	//Picasa, Google+
-	'googleusercontent.com',
-	//Deviantart
-	'deviantart.net',
-	//Smugmug
-	'smugmug.com',
-];
+include "vendor/autoload.php";
+include "config.php";
 
 // Get posts from Reddit
 do {
@@ -61,22 +31,30 @@ do {
 $message = "";
 foreach ($validImages as $validImage) {
 	$title = trim(str_replace("#{$currentChallenge}", "", $validImage->title), ' :');
-	$message .= "* **{$title}** [pic]({$validImage->url}) | [comment](http://www.reddit.com{$validImage->permalink}) by *{$validImage->author}*"."\r\n"."\r\n";
+	$message .= "* **{$title}** [pic]({$validImage->url}) | [comment](http://www.reddit.com{$validImage->permalink}) by *{$validImage->author}* <br><br>";
 }
 
-// List of receivers
-$recipients = [
-	"email1",
-	"email2",
-];
+$mail = new PHPMailer;
+$mail->isSMTP();
+$mail->isHTML(true); 
+$mail->Host = $smtp["host"];
+$mail->SMTPAuth = $smtp["smtp_auth"];
+$mail->Username = $smtp["username"];
+$mail->Password = $smtp["password"];
+$mail->SMTPSecure = $smtp["smtp_secure"];
+$mail->Port = $smtp["port"];
 
-// Subject and Headers
-$subject = "PictureChallenge #{$currentChallenge}";
-$headers = 'From: picturechallenge@picturechallenge'."\r\n"
-			.'Reply-To: no-reply@picturechallenge'."\r\n"
-			.'X-Mailer: PHP/'.phpversion();
+$mail->setFrom($fromEmail, 'Picture Challenge Script');
+foreach ($recipients as $recipient) {
+	$mail->addAddress($recipient);   
+}
 
-// Send Emails
-foreach ($recipients as $to) {
-	mail($to, $subject, $message, $headers);
+$mail->Subject = "PictureChallenge #{$currentChallenge}";
+$mail->Body = $message;
+
+if(!$mail->send()) {
+    echo 'Message could not be sent.';
+    echo 'Mailer Error: ' . $mail->ErrorInfo;
+} else {
+    echo 'Message has been sent';
 }
