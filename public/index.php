@@ -25,6 +25,7 @@ Flight::route('POST /call', function() {
   	"googleusercontent.com",
   	//Deviantart
   	"deviantart.net",
+    "deviantart.com",
   	//Smugmug
   	"smugmug.com",
   ];
@@ -56,8 +57,13 @@ Flight::route('POST /call', function() {
   			// Break loops if time limit is reached
   			if ($post->data->created_utc < $timeLimit) break 2;
 
+            // Check for valid domain
+            $validDomain = array_filter($acceptedDomain, function($el) use ($post) {
+                return (strpos($post->data->domain, $el) !== false);
+            });
+
   			// Find images
-  			if (in_array($post->data->domain, $acceptedDomain)) {
+  			if ($validDomain) {
   				if (strpos($post->data->title, $challengeNumber) !== false) {
   					$validImages[] = $post->data;
   				}
