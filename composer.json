@@ -1,8 +1,0 @@
-{
-    "require-dev": {
-        "laravel/homestead": "^3.0"
-    },
-    "require": {
-        "mikecao/flight": "^1.2"
-    }
-}
