@@ -28,6 +28,9 @@ Flight::route('POST /call', function() {
     "deviantart.com",
   	//Smugmug
   	"smugmug.com",
+    //OneDrive
+    "1drv.ms",
+    "onedrive.live.com",
   ];
   // Api URL, limit set to 25 posts
   $api_url = "https://www.reddit.com/r/PictureChallenge.json?&limit=25";
