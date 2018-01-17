@@ -17,4 +17,4 @@ To run the App locally you require Docker and Docker Compose and fallow the step
 ## Components
 
 1. Flight PHP: https://github.com/mikecao/flight
-2. Laravel Homestead: https://github.com/laravel/homestead
+2. Docker & Docker Compose: https://docs.docker.com/compose/

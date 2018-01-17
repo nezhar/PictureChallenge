@@ -22,7 +22,10 @@ Flight::route('POST /call', function() {
   	"min.us",
   	"minus.com",
   	//Picasa, Google+
-  	"googleusercontent.com",
+    "googleusercontent.com",
+    //Google Photos
+    "photos.google.com",
+    "photos.app.goo.gl",
   	//Deviantart
   	"deviantart.net",
     "deviantart.com",
