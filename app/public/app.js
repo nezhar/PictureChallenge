@@ -12,9 +12,13 @@ $(function () {
     $.post( "/call", { challenge_number: $("#challenge_number").val(), weeks: $("#weeks").val() }).done(function( data ) {
         $('.results_container .result').html('');
 
-        $.each(data, function(key, value) {
-            $('.results_container .results').append("<div class='result'>"+value+"</div>");
-        });
+        if (data) {
+          $.each(data, function(key, value) {
+              $('.results_container .results').append("<div class='result'>"+value+"</div>");
+          });
+        } else {
+          $('.results_container .results').append("<div class='result'>None</div>");
+        }
 
         $('.results_container').slideDown( "slow");
     });
