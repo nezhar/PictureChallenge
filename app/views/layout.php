@@ -5,9 +5,14 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
-  <link rel="stylesheet" href="/app.css">
+  <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+  
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.22.2/moment.js"></script>
   <script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+
+  <link rel="stylesheet" href="/app.css">
   <script src="/app.js"></script>
 </head>
 <body>
@@ -20,10 +25,8 @@
       <input type="challenge_number" class="form-control" id="challenge_number" placeholder="Enter challenge number, like #250">
     </div>
     <div class="form-group">
-      <label for="days">Days to look back
-      <button type="button" onclick="setDays(7)">One Week</button>
-      <button type="button" onclick="setDays(30)">One Month</button></label>
-      <input type="number" class="form-control" id="days" value="7">
+      <label for="days">Challenge date</label>
+      <input class="form-control" type="text" name="daterange" id="daterange" autocomplete="off" readonly/>
     </div>
     <div class="checkbox">
     </div>

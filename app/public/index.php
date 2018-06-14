@@ -46,13 +46,18 @@ Flight::route('POST /call', function() {
     Flight::halt(400, 'Please set challenge_number');
     die();
   }
-  if (!isset($request->data['days'])) {
-    Flight::halt(400, 'Please set days');
+  if (!isset($request->data['start_date'])) {
+    Flight::halt(400, 'Please set start_date');
+    die();
+  }
+  if (!isset($request->data['end_date'])) {
+    Flight::halt(400, 'Please set end_date');
     die();
   }
 
   $challengeNumber = $request->data['challenge_number'];
-  $timeLimit = time()-60*60*24*$request->data['days'];
+  $startDate = strtotime($request->data['start_date']);
+  $endDate = strtotime($request->data['end_date']);
 
   // Get posts from Reddit
   do {
@@ -62,13 +67,16 @@ Flight::route('POST /call', function() {
 
   	foreach ($posts->data->children as $post) {
   		if (!$post->data->stickied) {
-  			// Break loops if time limit is reached
-  			if ($post->data->created_utc < $timeLimit) break 2;
+        // Skip posts that are older than end date
+        if ($post->data->created_utc > $endDate) continue;
 
-            // Check for valid domain
-            $validDomain = array_filter($acceptedDomain, function($el) use ($post) {
-                return (strpos($post->data->domain, $el) !== false);
-            });
+  			// Break loops if time start date is reached
+        if ($post->data->created_utc < $startDate) break 2;
+
+        // Check for valid domain
+        $validDomain = array_filter($acceptedDomain, function($el) use ($post) {
+            return (strpos($post->data->domain, $el) !== false);
+        });
 
   			// Find images
   			if ($validDomain) {
