@@ -4,12 +4,11 @@ $(function () {
     ajaxStop: function() { $('body').removeClass("loading"); }
   })
 
-
   $( "#request_form" ).submit(function( event ) {
     event.preventDefault();
 
     $('.results_container').slideUp( "slow");
-    $.post( "/call", { challenge_number: $("#challenge_number").val(), weeks: $("#weeks").val() }).done(function( data ) {
+    $.post( "/call", { challenge_number: $("#challenge_number").val(), days: $("#days").val() }).done(function( data ) {
         $('.results_container .result').html('');
 
         if (data) {
@@ -24,5 +23,8 @@ $(function () {
     });
 
   });
-
 });
+
+var setDays = function(value) {
+  $("#days").val(value);
+}

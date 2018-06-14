@@ -44,13 +44,15 @@ Flight::route('POST /call', function() {
 
   if (!isset($request->data['challenge_number'])) {
     Flight::halt(400, 'Please set challenge_number');
+    die();
   }
-  if (!isset($request->data['weeks'])) {
-    Flight::halt(400, 'Please set weeks');
+  if (!isset($request->data['days'])) {
+    Flight::halt(400, 'Please set days');
+    die();
   }
 
   $challengeNumber = $request->data['challenge_number'];
-  $timeLimit = time()-60*60*24*7*$request->data['weeks'];
+  $timeLimit = time()-60*60*24*$request->data['days'];
 
   // Get posts from Reddit
   do {

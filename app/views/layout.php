@@ -20,14 +20,10 @@
       <input type="challenge_number" class="form-control" id="challenge_number" placeholder="Enter challenge number, like #250">
     </div>
     <div class="form-group">
-      <label for="weeks">Weeks to look back:</label>
-      <select class="form-control" id="weeks">
-        <option value="1">One</option>
-        <option value="2">Two</option>
-        <option value="3">Three</option>
-        <option value="4">Four</option>
-        <option value="5">Five</option>
-      </select>
+      <label for="days">Days to look back
+      <button type="button" onclick="setDays(7)">One Week</button>
+      <button type="button" onclick="setDays(30)">One Month</button></label>
+      <input type="number" class="form-control" id="days" value="7">
     </div>
     <div class="checkbox">
     </div>
