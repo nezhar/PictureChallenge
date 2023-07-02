@@ -59,11 +59,21 @@ Flight::route('POST /call', function() {
   $startDate = strtotime($request->data['start_date']);
   $endDate = strtotime($request->data['end_date']);
 
+  $options = [
+    'http' => [
+      'method' => 'GET',
+      'header' => [
+        'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:90.0) Gecko/20100101 Firefox/90.0',
+      ],
+    ],
+  ];
+  $context = stream_context_create($options);
+
   // Get posts from Reddit
   do {
   	//Call Reddit API
   	$call = isset($after) ? $api_url."&after={$after}" : $api_url;
-  	$posts = json_decode(file_get_contents($call));
+  	$posts = json_decode(file_get_contents($call, false, $context));
 
   	foreach ($posts->data->children as $post) {
   		if (!$post->data->stickied) {
