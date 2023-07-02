@@ -1,5 +1,5 @@
-FROM php:apache
-MAINTAINER Harald Nezbeda <hn@nezhar.com>
+FROM php:7.0-apache-jessie
+LABEL maintainer="Harald Nezbeda <hn@nezhar.com>"
 
 # Enable apache mods.
 RUN a2enmod rewrite
