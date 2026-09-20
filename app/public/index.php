@@ -35,8 +35,8 @@ Flight::route('POST /call', function() {
     "1drv.ms",
     "onedrive.live.com",
   ];
-  // Api URL, limit set to 25 posts
-  $api_url = "https://www.reddit.com/r/PictureChallenge.json?&limit=25";
+  // Api URL, limit set to 25 posts (oauth.reddit.com required for authenticated requests)
+  $api_url = "https://oauth.reddit.com/r/PictureChallenge.json?&limit=25";
   // List of valid images
   $validImages = [];
 
@@ -59,21 +59,52 @@ Flight::route('POST /call', function() {
   $startDate = strtotime($request->data['start_date']);
   $endDate = strtotime($request->data['end_date']);
 
+  // Fetch Reddit OAuth token (application-only client credentials flow)
+  $clientId = getenv('REDDIT_CLIENT_ID');
+  $clientSecret = getenv('REDDIT_CLIENT_SECRET');
+
+  if (!$clientId || !$clientSecret) {
+    Flight::halt(500, 'Reddit API credentials not configured');
+    die();
+  }
+
+  $tokenOptions = [
+    'http' => [
+      'method' => 'POST',
+      'header' => [
+        'Authorization: Basic ' . base64_encode("{$clientId}:{$clientSecret}"),
+        'User-Agent: PictureChallenge/1.0',
+        'Content-Type: application/x-www-form-urlencoded',
+      ],
+      'content' => 'grant_type=client_credentials',
+    ],
+  ];
+  $tokenContext = stream_context_create($tokenOptions);
+  $tokenResponse = json_decode(file_get_contents('https://www.reddit.com/api/v1/access_token', false, $tokenContext));
+
+  if (!isset($tokenResponse->access_token)) {
+    Flight::halt(500, 'Failed to obtain Reddit access token');
+    die();
+  }
+
   $options = [
     'http' => [
       'method' => 'GET',
       'header' => [
-        'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:90.0) Gecko/20100101 Firefox/90.0',
+        'Authorization: Bearer ' . $tokenResponse->access_token,
+        'User-Agent: PictureChallenge/1.0',
       ],
     ],
   ];
   $context = stream_context_create($options);
 
-  // Get posts from Reddit
+  // Get posts from Reddit (oauth.reddit.com requires the token)
   do {
   	//Call Reddit API
   	$call = isset($after) ? $api_url."&after={$after}" : $api_url;
   	$posts = json_decode(file_get_contents($call, false, $context));
+
+  	if (empty($posts->data->children)) break;
 
   	foreach ($posts->data->children as $post) {
   		if (!$post->data->stickied) {
@@ -97,11 +128,12 @@ Flight::route('POST /call', function() {
   		}
   	}
   	//Start next API call from this post
-  	$after = $post->data->name;
+  	if (empty($posts->data->after)) break;
+  	$after = $posts->data->after;
   } while (1!=0);
 
   // Create Result for Reddit Comments
-  $results = [];
+  $result = [];
   foreach ($validImages as $validImage) {
   	$title = trim(str_replace($challengeNumber, "", $validImage->title), ' :');
   	$result[] = "* **{$title}** [pic]({$validImage->url}) | [comment](http://www.reddit.com{$validImage->permalink}) by *{$validImage->author}*";

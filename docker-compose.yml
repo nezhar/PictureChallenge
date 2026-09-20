@@ -6,6 +6,9 @@ services:
       - 127.0.0.1:80:80
     volumes:
       - ./app:/var/www/app/
+    environment:
+      - REDDIT_CLIENT_ID=${REDDIT_CLIENT_ID}
+      - REDDIT_CLIENT_SECRET=${REDDIT_CLIENT_SECRET}
 
   composer:
     restart: 'no'
