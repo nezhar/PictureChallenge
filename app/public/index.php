@@ -13,30 +13,31 @@ Flight::route('/', function() {
 Flight::route('POST /call', function() {
   // List of accepted domains for posts
   $acceptedDomain = [
-  	//Flickr
-  	"flickr.com",
-  	"flic.kr",
-  	//500px
-  	"500px.com",
-  	//min.us
-  	"min.us",
-  	"minus.com",
-  	//Picasa, Google+
+    //Flickr
+    "flickr.com",
+    "flic.kr",
+    //500px
+    "500px.com",
+    //min.us
+    "min.us",
+    "minus.com",
+    //Picasa, Google+
     "googleusercontent.com",
     //Google Photos
     "photos.google.com",
     "photos.app.goo.gl",
-  	//Deviantart
-  	"deviantart.net",
+    //Deviantart
+    "deviantart.net",
     "deviantart.com",
-  	//Smugmug
-  	"smugmug.com",
+    //Smugmug
+    "smugmug.com",
     //OneDrive
     "1drv.ms",
     "onedrive.live.com",
   ];
-  // Api URL, limit set to 25 posts (oauth.reddit.com required for authenticated requests)
-  $api_url = "https://oauth.reddit.com/r/PictureChallenge.json?&limit=25";
+  // Public Atom feed (JSON API blocks unauthenticated requests), newest first so the
+  // date range check can stop paging early.
+  $api_url = "https://www.reddit.com/r/PictureChallenge/new/.rss?limit=100";
   // List of valid images
   $validImages = [];
 
@@ -59,87 +60,97 @@ Flight::route('POST /call', function() {
   $startDate = strtotime($request->data['start_date']);
   $endDate = strtotime($request->data['end_date']);
 
-  // Fetch Reddit OAuth token (application-only client credentials flow)
-  $clientId = getenv('REDDIT_CLIENT_ID');
-  $clientSecret = getenv('REDDIT_CLIENT_SECRET');
-
-  if (!$clientId || !$clientSecret) {
-    Flight::halt(500, 'Reddit API credentials not configured');
-    die();
-  }
-
-  $tokenOptions = [
-    'http' => [
-      'method' => 'POST',
-      'header' => [
-        'Authorization: Basic ' . base64_encode("{$clientId}:{$clientSecret}"),
-        'User-Agent: PictureChallenge/1.0',
-        'Content-Type: application/x-www-form-urlencoded',
-      ],
-      'content' => 'grant_type=client_credentials',
-    ],
-  ];
-  $tokenContext = stream_context_create($tokenOptions);
-  $tokenResponse = json_decode(file_get_contents('https://www.reddit.com/api/v1/access_token', false, $tokenContext));
-
-  if (!isset($tokenResponse->access_token)) {
-    Flight::halt(500, 'Failed to obtain Reddit access token');
-    die();
-  }
-
+  // Reddit requires a unique, descriptive User-Agent for unauthenticated requests
   $options = [
     'http' => [
       'method' => 'GET',
       'header' => [
-        'Authorization: Bearer ' . $tokenResponse->access_token,
-        'User-Agent: PictureChallenge/1.0',
+        'User-Agent: web:PictureChallenge:1.1 (+https://github.com/nezhar/PictureChallenge)',
       ],
+      'ignore_errors' => true,
     ],
   ];
   $context = stream_context_create($options);
 
-  // Get posts from Reddit (oauth.reddit.com requires the token)
+  // Get posts from Reddit
   do {
-  	//Call Reddit API
-  	$call = isset($after) ? $api_url."&after={$after}" : $api_url;
-  	$posts = json_decode(file_get_contents($call, false, $context));
+    //Call Reddit feed, pause between pages and retry when rate limited
+    if (isset($after)) sleep(2);
+    $call = isset($after) ? $api_url."&after={$after}" : $api_url;
+    for ($attempt = 1; $attempt <= 3; $attempt++) {
+      $response = @file_get_contents($call, false, $context);
+      // Last status line wins when redirects were followed
+      $statusLines = isset($http_response_header) ? preg_grep('#^HTTP/#', $http_response_header) : [];
+      $status = $statusLines ? end($statusLines) : 'no response';
+      if (strpos($status, ' 429') === false) break;
+      sleep(5 * $attempt);
+    }
 
-  	if (empty($posts->data->children)) break;
+    if ($response === false || strpos($status, ' 200') === false) {
+      Flight::halt(502, "Reddit request failed: {$status}");
+      die();
+    }
 
-  	foreach ($posts->data->children as $post) {
-  		if (!$post->data->stickied) {
-        // Skip posts that are older than end date
-        if ($post->data->created_utc > $endDate) continue;
+    $feed = @simplexml_load_string($response);
+    if ($feed === false) {
+      Flight::halt(502, 'Reddit returned an invalid feed');
+      die();
+    }
 
-  			// Break loops if time start date is reached
-        if ($post->data->created_utc < $startDate) break 2;
+    if (empty($feed->entry)) break;
 
-        // Check for valid domain
-        $validDomain = array_filter($acceptedDomain, function($el) use ($post) {
-            return (strpos($post->data->domain, $el) !== false);
-        });
+    foreach ($feed->entry as $entry) {
+      $post = feedEntryToPost($entry);
 
-  			// Find images
-  			if ($validDomain) {
-  				if (strpos($post->data->title, $challengeNumber) !== false) {
-  					$validImages[] = $post->data;
-  				}
-  			}
-  		}
-  	}
-  	//Start next API call from this post
-  	if (empty($posts->data->after)) break;
-  	$after = $posts->data->after;
+      // Skip posts that are newer than end date
+      if ($post->created_utc > $endDate) continue;
+
+      // Break loops if time start date is reached
+      if ($post->created_utc < $startDate) break 2;
+
+      // Check for valid domain
+      $validDomain = array_filter($acceptedDomain, function($el) use ($post) {
+        return (strpos($post->domain, $el) !== false);
+      });
+
+      // Find images
+      if ($validDomain) {
+        if (strpos($post->title, $challengeNumber) !== false) {
+          $validImages[] = $post;
+        }
+      }
+    }
+    //Start next feed call from the last post
+    if (count($feed->entry) < 100) break;
+    $after = (string) $entry->id;
   } while (1!=0);
 
   // Create Result for Reddit Comments
   $result = [];
   foreach ($validImages as $validImage) {
-  	$title = trim(str_replace($challengeNumber, "", $validImage->title), ' :');
-  	$result[] = "* **{$title}** [pic]({$validImage->url}) | [comment](http://www.reddit.com{$validImage->permalink}) by *{$validImage->author}*";
+    $title = trim(str_replace($challengeNumber, "", $validImage->title), ' :');
+    $result[] = "* **{$title}** [pic]({$validImage->url}) | [comment](http://www.reddit.com{$validImage->permalink}) by *{$validImage->author}*";
   }
 
   Flight::json($result);
 });
+
+// Map an Atom feed entry to the post fields used above
+function feedEntryToPost($entry) {
+  // The submitted link is only available inside the HTML content as "[link]"
+  $url = '';
+  if (preg_match('#<a href="([^"]+)">\[link\]</a>#', (string) $entry->content, $match)) {
+    $url = html_entity_decode($match[1], ENT_QUOTES);
+  }
+
+  return (object) [
+    'title' => (string) $entry->title,
+    'created_utc' => strtotime((string) $entry->published),
+    'author' => preg_replace('#^/u/#', '', (string) $entry->author->name),
+    'url' => $url,
+    'domain' => (string) parse_url($url, PHP_URL_HOST),
+    'permalink' => (string) parse_url((string) $entry->link['href'], PHP_URL_PATH),
+  ];
+}
 
 Flight::start();
